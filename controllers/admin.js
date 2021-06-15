@@ -13,13 +13,9 @@ exports.postAddProduct = (req, res, next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  req.user
-    .createProduct({
-      title,
-      imageUrl,
-      price,
-      description,
-    })
+  const product = new Product(title, price, description, imageUrl);
+  product
+    .save()
     .then((result) => {
       console.log("Created Product");
       res.redirect("/");
@@ -27,64 +23,73 @@ exports.postAddProduct = (req, res, next) => {
     .catch((err) => console.log(err));
 };
 
-exports.getEditProduct = (req, res, next) => {
-  const prodId = req.params.productId;
-  req.user
-    .getProducts({ where: { id: prodId } })
+// exports.getEditProduct = (req, res, next) => {
+//   const prodId = req.params.productId;
+//   req.user
+//     .getProducts({ where: { id: prodId } })
+//     .then((products) => {
+//       const product = products[0];
+//       if (!product) {
+//         res.redirect("/");
+//       }
+//       res.render("admin/edit-product", {
+//         pageTitle: "Edit Product",
+//         path: "/admin/edit-product",
+//         editing: true,
+//         product,
+//       });
+//     })
+//     .catch((err) => console.log(err));
+// };
+
+// exports.postEditProduct = (req, res, next) => {
+//   const prodId = req.body.productId;
+//   const title = req.body.title;
+//   const price = req.body.price;
+//   const imageUrl = req.body.imageUrl;
+//   const desc = req.body.description;
+//   Product.findByPk(prodId)
+//     .then((product) => {
+//       product.title = title;
+//       product.price = price;
+//       product.imageUrl = imageUrl;
+//       product.description = desc;
+//       return product.save();
+//     })
+//     .then((result) => {
+//       console.log("Updated Product");
+//       res.redirect("/admin/products");
+//     })
+//     .catch((err) => console.log(err));
+// };
+
+exports.getProducts = (req, res, next) => {
+  Product.fetchAll()
     .then((products) => {
-      const product = products[0];
-      if (!product) {
-        res.redirect("/");
-      }
-      res.render("admin/edit-product", {
-        pageTitle: "Edit Product",
-        path: "/admin/edit-product",
-        editing: true,
-        product,
+      res.render("admin/products", {
+        prods: products,
+        pageTitle: "Admin Products",
+        path: "/admin/products",
       });
     })
     .catch((err) => console.log(err));
+  // req.user.getProducts().then((products) => {
+  //   res.render("admin/products", {
+  //     prods: products,
+  //     pageTitle: "Admin Products",
+  //     path: "/admin/products",
+  //   });
+  // });
 };
 
-exports.postEditProduct = (req, res, next) => {
-  const prodId = req.body.productId;
-  const title = req.body.title;
-  const price = req.body.price;
-  const imageUrl = req.body.imageUrl;
-  const desc = req.body.description;
-  Product.findByPk(prodId)
-    .then((product) => {
-      product.title = title;
-      product.price = price;
-      product.imageUrl = imageUrl;
-      product.description = desc;
-      return product.save();
-    })
-    .then((result) => {
-      console.log("Updated Product");
-      res.redirect("/admin/products");
-    })
-    .catch((err) => console.log(err));
-};
-
-exports.getProducts = (req, res, next) => {
-  req.user.getProducts().then((products) => {
-    res.render("admin/products", {
-      prods: products,
-      pageTitle: "Admin Products",
-      path: "/admin/products",
-    });
-  });
-};
-
-exports.postDeleteProduct = (req, res, next) => {
-  const prodId = req.body.productId;
-  Product.destroy({
-    where: {
-      id: prodId,
-    },
-  }).then(() => {
-    console.log("Destroyed Product");
-    res.redirect("/admin/products");
-  });
-};
+// exports.postDeleteProduct = (req, res, next) => {
+//   const prodId = req.body.productId;
+//   Product.destroy({
+//     where: {
+//       id: prodId,
+//     },
+//   }).then(() => {
+//     console.log("Destroyed Product");
+//     res.redirect("/admin/products");
+//   });
+// };
