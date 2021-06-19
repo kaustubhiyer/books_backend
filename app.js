@@ -5,6 +5,8 @@ const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const session = require("express-session");
 const mongodbStore = require("connect-mongodb-session")(session);
+const csrf = require("csurf");
+const flash = require("connect-flash");
 dotenv.config();
 
 const errorController = require("./controllers/error");
@@ -18,6 +20,7 @@ const store = new mongodbStore({
   uri: process.env.MONGO_URI,
   collection: "sessions",
 });
+const csrfProtection = csrf();
 
 app.set("view engine", "ejs");
 app.set("views", "views");
@@ -32,6 +35,8 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(
   session({ secret: "wat", resave: false, saveUninitialized: false, store })
 );
+app.use(csrfProtection);
+app.use(flash());
 
 app.use((req, res, next) => {
   if (!req.session.user) {
@@ -44,6 +49,13 @@ app.use((req, res, next) => {
     })
     .catch((err) => console.log(err));
 });
+
+app.use((req, res, next) => {
+  res.locals.isAuthenticated = req.session.isAuthenticated;
+  res.locals.csrfToken = req.csrfToken();
+  next();
+});
+
 app.use("/admin", adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
@@ -53,17 +65,6 @@ app.use(errorController.get404);
 mongoose
   .connect(process.env.MONGO_URI)
   .then((res) => {
-    User.findOne().then((user) => {
-      if (!user) {
-        const user = new User({
-          name: "Teddy",
-          email: "teddy@example.com",
-          cart: { items: [] },
-        });
-        user.save();
-      }
-    });
-
     app.listen(3000);
   })
   .catch((err) => console.error(err));

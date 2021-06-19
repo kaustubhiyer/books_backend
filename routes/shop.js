@@ -3,6 +3,7 @@ const path = require("path");
 const express = require("express");
 
 const productsController = require("../controllers/shop");
+const isAuth = require("../middleware/isAuth");
 
 const router = express.Router();
 
@@ -12,14 +13,18 @@ router.get("/products", productsController.getProducts);
 
 router.get("/products/:productId", productsController.getProduct);
 
-router.get("/cart", productsController.getCart);
+router.get("/cart", isAuth, productsController.getCart);
 
-router.post("/cart", productsController.postCart);
+router.post("/cart", isAuth, productsController.postCart);
 
-router.post("/cart-delete-item", productsController.postCartDeleteProduct);
+router.post(
+  "/cart-delete-item",
+  isAuth,
+  productsController.postCartDeleteProduct
+);
 
-router.get("/orders", productsController.getOrders);
+router.get("/orders", isAuth, productsController.getOrders);
 
-router.post("/create-order", productsController.createOrder);
+router.post("/create-order", isAuth, productsController.createOrder);
 
 module.exports = router;
