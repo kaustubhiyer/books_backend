@@ -1,7 +1,8 @@
 const Product = require("../models/product");
+const Order = require("../models/order");
 
 exports.getProducts = (req, res, next) => {
-  Product.fetchAll()
+  Product.find()
     .then((products) => {
       res.render("shop/product-list", {
         prods: products,
@@ -26,7 +27,7 @@ exports.getProduct = (req, res, next) => {
 };
 
 exports.getIndex = (req, res, next) => {
-  Product.fetchAll()
+  Product.find()
     .then((products) => {
       res.render("shop/index", {
         prods: products,
@@ -53,12 +54,13 @@ exports.postCart = (req, res, next) => {
 
 exports.getCart = (req, res, next) => {
   req.user
-    .getCart()
-    .then((products) => {
+    .populate("cart.items.productId")
+    .execPopulate()
+    .then((user) => {
       res.render("shop/cart", {
         path: "/cart",
         pageTitle: "Cart",
-        products: products,
+        products: user.cart.items,
       });
     })
     .catch((err) => console.log(err));
@@ -78,8 +80,7 @@ exports.postCartDeleteProduct = (req, res, next) => {
 };
 
 exports.getOrders = (req, res, next) => {
-  req.user
-    .getOrders()
+  Order.find({ "user.userId": req.user._id })
     .then((orders) => {
       res.render("shop/orders", {
         path: "/orders",
@@ -91,10 +92,29 @@ exports.getOrders = (req, res, next) => {
 };
 
 exports.createOrder = (req, res, next) => {
+  let products;
   req.user
-    .createOrder()
-    .then(() => {
-      res.redirect("/orders");
+    .populate("cart.items.productId")
+    .execPopulate()
+    .then((user) => {
+      products = user.cart.items.map((product) => {
+        return { qty: product.qty, product: { ...product.productId._doc } };
+      });
+      const order = new Order({
+        user: {
+          name: user.name,
+          userId: req.user,
+        },
+        products: products,
+      });
+      return order.save();
     })
-    .catch((err) => console.log(err));
+    .then(() => {
+      req.user.cart.items = [];
+      return req.user.save();
+    })
+    .then(() => {
+      console.log("Order created");
+      res.redirect("/orders");
+    });
 };
