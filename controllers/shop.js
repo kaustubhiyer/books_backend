@@ -2,17 +2,36 @@ const Product = require("../models/product");
 const Order = require("../models/order");
 const fs = require("fs");
 const path = require("path");
+const PDFDocument = require("pdfkit");
+const PER_PAGE = 1;
 
 exports.getProducts = (req, res, next) => {
+  const page = req.query.page ? parseInt(req.query.page) : 1;
+  let totalItems;
   Product.find()
+    .countDocuments()
+    .then((numProducts) => {
+      totalItems = numProducts;
+      return Product.find()
+        .skip((page - 1) * PER_PAGE)
+        .limit(PER_PAGE);
+    })
     .then((products) => {
-      res.render("shop/product-list", {
+      res.render("shop/products", {
         prods: products,
-        pageTitle: "All Products",
+        pageTitle: "Products",
         path: "/products",
+        totalProducts: totalItems,
+        hasNextPage: PER_PAGE * page < totalItems,
+        hasPreviousPage: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / PER_PAGE),
+        currentPage: page,
       });
     })
     .catch((err) => {
+      console.log(err);
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -37,15 +56,32 @@ exports.getProduct = (req, res, next) => {
 };
 
 exports.getIndex = (req, res, next) => {
+  const page = req.query.page ? parseInt(req.query.page) : 1;
+  let totalItems;
   Product.find()
+    .countDocuments()
+    .then((numProducts) => {
+      totalItems = numProducts;
+      return Product.find()
+        .skip((page - 1) * PER_PAGE)
+        .limit(PER_PAGE);
+    })
     .then((products) => {
       res.render("shop/index", {
         prods: products,
         pageTitle: "Shop",
         path: "/",
+        totalProducts: totalItems,
+        hasNextPage: PER_PAGE * page < totalItems,
+        hasPreviousPage: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / PER_PAGE),
+        currentPage: page,
       });
     })
     .catch((err) => {
+      console.log(err);
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
@@ -162,24 +198,28 @@ exports.getInvoice = (req, res, next) => {
       }
       const invoiceName = "Invoice-" + orderId + ".pdf";
       const invoicePath = path.join("data", "invoices", invoiceName);
-      // fs.readFile(invoicePath, (err, data) => {
-      //   if (err) {
-      //     return next(err);
-      //   }
-      //   res.setHeader("Content-Type", "application/pdf");
-      //   res.setHeader(
-      //     "Content-Disposition",
-      //     'attachment; filename="' + invoiceName + '"'
-      //   );
-      //   res.send(data);
-      // });
-      const file = fs.createReadStream(invoicePath);
+      const pdfdoc = new PDFDocument();
+      pdfdoc.pipe(fs.createWriteStream(invoicePath));
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
         'attachment; filename="' + invoiceName + '"'
       );
-      file.pipe(res);
+      pdfdoc.pipe(res);
+      pdfdoc.fontSize(26).text("Invoice", {
+        underline: true,
+      });
+      pdfdoc.fontSize(14).text("----------------------");
+      let totalPrice = 0;
+      order.products.forEach((p) => {
+        totalPrice += p.qty * p.product.price;
+        pdfdoc.text(
+          p.product.title + " -     " + p.qty + "  x  " + "$" + p.product.price
+        );
+      });
+      pdfdoc.text("-------------");
+      pdfdoc.fontSize(20).text("TOTAL PRICE: $" + totalPrice);
+      pdfdoc.end();
     })
     .catch((err) => next(err));
 };

@@ -33,6 +33,7 @@
                                     <% } %>
                                 </div>
                             </article>
+                            <%- include('../includes/pagination.ejs', {currentPage, nextPage, lastPage, hasNextPage}) %>
                             <% } %>
                     </div>
                     <% } else { %>
